@@ -9,7 +9,7 @@ const rooms = new Map()
 wss.on('connection', ws => {
     let currentRoom = null;
     let playerName = null;
-    ws.on('open', () => console.log('New connection'));
+   console.log('New connection')
     ws.on('close', () => {
         console.log('Connection closed');
         if (currentRoom && rooms.has(currentRoom)) {
@@ -25,9 +25,9 @@ wss.on('connection', ws => {
             }
         }
     })
-    ws.on('error', () => {
-        console.log('Connection Error');
-    })
+    ws.on('error', err => {
+        console.error('WebSocket error:', err);
+    });
     ws.on('message', () => {
         const msg = buffer.toString();
         const { data, type } = JSON.parse(msg);
