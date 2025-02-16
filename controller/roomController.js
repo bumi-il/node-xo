@@ -1,15 +1,31 @@
 const rooms = {}; 
 
+const jwt = require('jsonwebtoken');
+
 const createRoom = (req, res) => {
-    const roomId = Math.floor(Math.random() * 1000) + 1;
+    const token = req.headers.authorization;
+
+    if (!token || token !== "your-secret-token") {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    let roomId;
+    do {
+        roomId = Math.floor(Math.random() * 1000) + 1;
+    } while (rooms[roomId]);
+
+    const playerToken = jwt.sign({ playerId: 'uniquePlayerId' }, 'your-secret-key', { expiresIn: '1h' });
+
     rooms[roomId] = {
-        players: [],
+        players: [], 
         board: Array(9).fill(null),
-        currentTurn: 'X', 
+        currentTurn: 'X',
         winner: null
     };
-    res.json({ roomId });
+
+    res.json({ roomId, playerToken });
 };
+
 
 const joinRoom = (req, res) => {
     const { roomId } = req.params;
