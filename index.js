@@ -50,38 +50,43 @@ wss.on('connection', ws => {
                 return;
             }
 
-            room.players.set(ws, name);
+            playerSymbol = room.players.size === 0 ? 'X' : 'O'; // שחקן ראשון X, השני O
+            room.players.set(ws, { name, symbol: playerSymbol });
             currentRoom = roomID;
-            playerName = name;
 
             if (room.players.size === 2) {
-                room.turn = [...room.players.values()][0];
-                room.players.forEach((_, playerWs) => {
-                    playerWs.send(encode({ players: [...room.players.values()], turn: room.turn }, 'start'));
+                room.turn = 'X'; // תמיד מתחילים עם X
+                room.players.forEach(({ name, symbol }, playerWs) => {
+                    playerWs.send(encode({
+                        players: [...room.players.values()].map(p => ({ name: p.name, symbol: p.symbol })),
+                        turn: room.turn
+                    }, 'start'));
                 });
             }
-        } else if (type === 'move' && currentRoom) {
+        } 
+
+        else if (type === 'move' && currentRoom) {
             const { position } = data;
             const room = rooms.get(currentRoom);
 
-            if (!room || room.board[position] !== null) return;
+            if (!room || room.board[position] !== null) return; // אם המקום תפוס, מתעלמים
 
-            if (room.turn !== playerName) {
+            const player = room.players.get(ws);
+            if (!player || room.turn !== player.symbol) {
                 ws.send(encode('Not your turn', 'error'));
                 return;
             }
 
-            room.board[position] = playerName;
-            room.turn = [...room.players.values()].find(p => p !== playerName);
+            room.board[position] = player.symbol; // מכניסים X או O ללוח
+            room.turn = room.turn === 'X' ? 'O' : 'X'; // מעבירים תור לשחקן השני
 
+            // שולחים עדכון לכל השחקנים
             room.players.forEach((_, playerWs) => {
                 playerWs.send(encode({ board: room.board, turn: room.turn }, 'update'));
             });
         }
-
-
     })
-
+    
 })
 
 const app = express();
