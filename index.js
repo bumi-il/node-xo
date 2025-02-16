@@ -6,19 +6,31 @@ const encode = (data, type) => JSON.stringify({ data, type })
 const wss = new WebSocketServer({ port: 5050 });
 const rooms = new Map()
 
-wss.on('connection',ws=>{
+wss.on('connection', ws => {
     let currentRoom = null;
     let playerName = null;
     ws.on('open', () => console.log('New connection'));
-    ws.on('close',()=>{
+    ws.on('close', () => {
         console.log('Connection closed');
+        if (currentRoom && rooms.has(currentRoom)) {
+            const room = rooms.get(currentRoom);
+            room.players.delete(ws);
+
+            if (room.players.size === 1) {
+                room.players.forEach((_, playerWs) => {
+                    playerWs.send(encode(playerName, 'opponent_left'));
+                });
+            } else if (room.players.size === 0) {
+                rooms.delete(currentRoom);
+            }
+        }
     })
-    ws.on('error',()=>{
+    ws.on('error', () => {
         console.log('Connection Error');
     })
-    ws.on('message',()=>{
+    ws.on('message', () => {
         const msg = buffer.toString();
-        const { data, type } = JSON.parse(msg); 
+        const { data, type } = JSON.parse(msg);
         if (type === 'join') {
             const { roomID, name } = data;
 
@@ -27,7 +39,7 @@ wss.on('connection',ws=>{
             }
 
             const room = rooms.get(roomID);
-            
+
             if (room.players.size >= 2) {
                 ws.send(encode('Room is full', 'error'));
                 return;
@@ -43,7 +55,7 @@ wss.on('connection',ws=>{
             playerName = name;
 
             if (room.players.size === 2) {
-                room.turn = [...room.players.values()][0]; 
+                room.turn = [...room.players.values()][0];
                 room.players.forEach((_, playerWs) => {
                     playerWs.send(encode({ players: [...room.players.values()], turn: room.turn }, 'start'));
                 });
