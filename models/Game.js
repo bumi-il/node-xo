@@ -21,6 +21,14 @@ const GameSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    player1:{
+        type: String,
+        required:true
+    },
+    player2:{
+        type: String,
+        required:true
+    },
     
 });
 
